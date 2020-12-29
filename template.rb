@@ -1,4 +1,3 @@
-
 =begin
 Template Name: RailsKickStart
 Author: Panagiotis Skarlas 
@@ -34,6 +33,7 @@ def add_gems
     gem 'pry-nav'
     gem 'rubocop-rails'
     gem 'rubocop-performance', '~> 1.9', '>= 1.9.1'
+    gem 'solargraph', '~> 0.40.1'
   end
 end
 
@@ -49,9 +49,11 @@ def setup_foreman
 end
 
 def setup_rubocop
-  add_file ".rubocop.yml" do 
-    "require: rubocop-rails"
-  end
+  rubocop_config = <<~EOS
+    require: rubocop-rails
+    require: rubocop-performance
+  EOS
+  add_file ".rubocop.yml", rubocop_config
 end
 
 def setup_sidekiq
@@ -69,7 +71,7 @@ def setup_sidekiq
     "require 'sidekiq/web'\n\n",
     before: "Rails.application.routes.draw do"
 
-  content = <<-RUBY
+  content = <<~RUBY
     mount Sidekiq::Web => '/sidekiq'
   RUBY
 
@@ -95,6 +97,15 @@ def setup_test_gems
   EOS
   prepend_to_file "spec/spec_helper.rb", "#{spec_requires}"
   append_to_file ".gitignore", 'coverage'
+end
+
+def setup_letter_opener 
+  content = <<~EOS
+    mount LetterOpenerWeb::Engine, at: "/letter_opener" if Rails.env.development?
+  EOS
+  insert_into_file "config/routes.rb", content, after: "Rails.application.routes.draw do\n"
+  environment "config.action_mailer.delivery_method = :letter_opener", env: 'development'
+  environment "config.action_mailer.perform_deliveries = true", env: 'development'
 end
 
 def add_example_view_component
@@ -163,7 +174,7 @@ end
 
 # Begin Setup
 source_paths()
-
+# Add gems to Gemfile
 add_gems()
 
 after_bundle do
@@ -175,7 +186,7 @@ after_bundle do
   setup_test_gems()
   add_example_view_component()
   setup_tailwind()
-
+  setup_letter_opener()
   run "spring start"
 
   # Migrate
