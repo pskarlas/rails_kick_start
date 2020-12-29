@@ -49,10 +49,11 @@ def setup_foreman
 end
 
 def setup_rubocop
-  rubocop_config = <<~EOS
-    require: rubocop-rails
-    require: rubocop-performance
-  EOS
+  rubocop_config = <<~YML
+  require:
+    - rubocop-performance
+    - rubocop-rails
+  YML
   add_file ".rubocop.yml", rubocop_config
 end
 
